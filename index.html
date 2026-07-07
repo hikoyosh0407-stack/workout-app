@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>筋トレ週5</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111827">
+<style>
+:root{
+  --bg:#111827; --card:#1F2937; --card2:#273449; --line:#374151;
+  --txt:#F3F4F6; --sub:#9CA3AF; --acc:#60A5FA; --ok:#34D399; --warn:#F59E0B;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{margin:0; background:var(--bg); color:var(--txt);
+  font-family:-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;
+  padding-bottom:calc(70px + env(safe-area-inset-bottom));}
+header{position:sticky; top:0; z-index:10; background:rgba(17,24,39,.92);
+  backdrop-filter:blur(8px); padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;}
+header h1{font-size:17px; margin:0}
+header .sub{font-size:12px; color:var(--sub)}
+main{padding:14px 14px 20px; max-width:560px; margin:0 auto}
+.card{background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px; border:1px solid var(--line)}
+.daytag{display:inline-block; padding:2px 10px; border-radius:99px; font-size:12px; font-weight:700; color:#fff}
+h2{font-size:15px; margin:0 0 8px}
+.btn{display:block; width:100%; padding:14px; border:none; border-radius:12px;
+  background:var(--acc); color:#0B1220; font-size:16px; font-weight:700; cursor:pointer}
+.btn.sec{background:var(--card2); color:var(--txt); border:1px solid var(--line)}
+.btn.small{width:auto; padding:8px 14px; font-size:13px; display:inline-block}
+.btn:active{opacity:.75}
+.exhead{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px}
+.exname{font-weight:700; font-size:15px}
+.exmeta{font-size:12px; color:var(--sub)}
+.setrow{display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid var(--line)}
+.setno{width:26px; font-size:13px; color:var(--sub); flex-shrink:0}
+.stepper{display:flex; align-items:center; background:var(--card2); border-radius:10px; overflow:hidden}
+.stepper button{width:38px; height:42px; border:none; background:transparent; color:var(--acc);
+  font-size:20px; font-weight:700; cursor:pointer}
+.stepper input{width:56px; height:42px; border:none; background:transparent; color:var(--txt);
+  font-size:16px; font-weight:700; text-align:center; -moz-appearance:textfield}
+.stepper input::-webkit-inner-spin-button{display:none}
+.unit{font-size:11px; color:var(--sub); margin-left:-4px}
+.donebtn{margin-left:auto; width:46px; height:42px; border-radius:10px; border:1.5px solid var(--line);
+  background:transparent; color:var(--sub); font-size:20px; cursor:pointer; flex-shrink:0}
+.donebtn.on{background:var(--ok); border-color:var(--ok); color:#0B1220}
+.addset{background:none; border:1px dashed var(--line); color:var(--sub); border-radius:10px;
+  width:100%; padding:8px; margin-top:8px; font-size:13px; cursor:pointer}
+nav{position:fixed; bottom:0; left:0; right:0; display:flex; background:rgba(17,24,39,.95);
+  backdrop-filter:blur(8px); border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom); z-index:20}
+nav button{flex:1; padding:10px 0 8px; background:none; border:none; color:var(--sub);
+  font-size:11px; cursor:pointer}
+nav button .ico{display:block; font-size:20px; margin-bottom:2px}
+nav button.on{color:var(--acc)}
+.timer{position:fixed; left:12px; right:12px; bottom:calc(66px + env(safe-area-inset-bottom));
+  background:var(--warn); color:#1a1200; border-radius:14px; padding:12px 16px;
+  display:flex; align-items:center; justify-content:space-between; z-index:30;
+  font-weight:700; box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.timer.done{background:var(--ok); animation:blink .5s 6}
+@keyframes blink{50%{opacity:.4}}
+.timer .t{font-size:26px; font-variant-numeric:tabular-nums}
+.timer button{border:none; background:rgba(0,0,0,.18); border-radius:8px; padding:8px 14px;
+  font-weight:700; font-size:13px; cursor:pointer; color:inherit}
+.bar{height:10px; background:var(--card2); border-radius:99px; overflow:hidden; margin:4px 0 10px}
+.bar i{display:block; height:100%; background:var(--acc); border-radius:99px}
+.row{display:flex; justify-content:space-between; font-size:13px; color:var(--sub)}
+.big{font-size:22px; font-weight:800; color:var(--txt)}
+.loglist .card{cursor:pointer}
+textarea,input.text{width:100%; background:var(--card2); border:1px solid var(--line); color:var(--txt);
+  border-radius:10px; padding:10px; font-size:15px; font-family:inherit}
+.deload{border:1.5px solid var(--warn)}
+.deload-note{color:var(--warn); font-size:12px; font-weight:700; margin:4px 0}
+.chart{width:100%; height:auto}
+.muted{color:var(--sub); font-size:12px; line-height:1.6}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.kpi{background:var(--card2); border-radius:10px; padding:10px; text-align:center}
+.kpi .v{font-size:20px; font-weight:800}
+.kpi .l{font-size:11px; color:var(--sub)}
+</style>
+</head>
+<body>
+<header>
+  <div><h1 id="hTitle">筋トレ週5</h1><div class="sub" id="hSub"></div></div>
+  <div class="sub" id="hDate"></div>
+</header>
+<main id="main"></main>
+<nav>
+  <button data-v="today"><span class="ico">🏋️</span>今日</button>
+  <button data-v="logs"><span class="ico">📋</span>記録</button>
+  <button data-v="progress"><span class="ico">📈</span>進捗</button>
+  <button data-v="settings"><span class="ico">⚙️</span>設定</button>
+</nav>
+<div id="timerBox" style="display:none"></div>
+
+<script src="plan-data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const KEY = 'workout-v1';
+let state = load();
+let view = 'today';
+let timer = null;
+
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if(s && s.logs) return s;
+  }catch(e){}
+  return {logs: JSON.parse(JSON.stringify(SEED_LOGS)), active: null};
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+function dayDef(d){ return PLAN.days.find(x => x.day === d); }
+function findLog(w,d){ return state.logs.find(l => l.week === w && l.day === d); }
+function nextSession(){
+  for(let w = 1; w <= 9; w++) for(let d = 1; d <= 5; d++)
+    if(!findLog(w,d)) return {week: w, day: d};
+  return null;
+}
+function targets(w,d){ // [{ex, tgt}]
+  return dayDef(d).ex.map(e => ({e, tgt: e.sets[w-1]}));
+}
+function lastSets(exId, beforeW, beforeD){
+  const sorted = state.logs.slice().sort((a,b) => (a.week*10+a.day)-(b.week*10+b.day));
+  for(let i = sorted.length-1; i >= 0; i--){
+    const l = sorted[i];
+    if((l.week*10+l.day) < (beforeW*10+beforeD) && l.sets[exId] && l.sets[exId].length)
+      return l.sets[exId];
+  }
+  return null;
+}
+function today(){ return new Date().toISOString().slice(0,10); }
+function fmtSet(s){ return s.w != null ? `${s.w}×${s.r}` : `${s.r}回`; }
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll('nav button').forEach(b =>
+    b.classList.toggle('on', b.dataset.v === view));
+  $('#hDate').textContent = today().replaceAll('-','/');
+  if(view === 'today') renderToday();
+  else if(view === 'session') renderSession();
+  else if(view === 'logs') renderLogs();
+  else if(view === 'progress') renderProgress();
+  else renderSettings();
+}
+
+function renderToday(){
+  const ns = nextSession();
+  $('#hTitle').textContent = '筋トレ週5'; $('#hSub').textContent = '';
+  const m = $('#main');
+  if(!ns){ m.innerHTML = '<div class="card"><h2>🎉 9週間プラン完走!</h2><p class="muted">全セッション完了です。お疲れさまでした。</p></div>'; return; }
+  if(state.active && (state.active.week !== ns.week || state.active.day !== ns.day)){ state.active = null; save(); }
+  const dd = dayDef(ns.day);
+  const deload = ns.week === PLAN.deloadWeek;
+  const ts = targets(ns.week, ns.day);
+  const tot = ts.reduce((a,t) => a+t.tgt, 0);
+  let html = `<div class="card${deload ? ' deload' : ''}">
+    <span class="daytag" style="background:${dd.color}">Day${dd.day} ${dd.label}</span>
+    <div style="margin:10px 0 4px" class="big">週${ns.week}・${tot}セット</div>
+    ${deload ? '<div class="deload-note">★デロード週: 重量80〜85%・追い込まない</div>' : ''}
+    <table style="width:100%; font-size:14px; border-collapse:collapse; margin:8px 0">`;
+  for(const {e, tgt} of ts){
+    const last = lastSets(e.id, ns.week, ns.day);
+    const hint = last ? '前回 ' + last.map(fmtSet).join(', ') : (e.refW ? `参考 ${e.refW}kg` : '自重');
+    html += `<tr style="border-top:1px solid var(--line)">
+      <td style="padding:7px 0">${e.name}${e.main ? ' ★' : ''}</td>
+      <td style="text-align:center; white-space:nowrap; padding:0 8px"><b>${tgt}S</b> <span class="muted">${e.reps}</span></td>
+      <td style="text-align:right; font-size:11px; color:var(--sub)">${hint}</td></tr>`;
+  }
+  html += `</table>
+    <button class="btn" onclick="startSession()">${state.active ? '▶ 続きから再開' : 'トレーニング開始'}</button>
+  </div>`;
+  // week progress mini
+  const wt = weekStats(ns.week);
+  html += `<div class="card"><h2>週${ns.week}の進捗</h2>
+    <div class="bar"><i style="width:${Math.round(wt.done/wt.total*100)}%"></i></div>
+    <div class="row"><span>${wt.done} / ${wt.total} セット</span><span>${wt.days}/5日 完了</span></div></div>`;
+  m.innerHTML = html;
+}
+
+function weekStats(w){
+  let done = 0, total = 0, days = 0;
+  for(let d = 1; d <= 5; d++){
+    const tgt = targets(w,d).reduce((a,t) => a+t.tgt, 0);
+    total += tgt;
+    const l = findLog(w,d);
+    if(l){ days++; done += Object.values(l.sets).reduce((a,arr) => a+arr.length, 0); }
+  }
+  return {done, total, days};
+}
+
+function startSession(){
+  const ns = nextSession(); if(!ns) return;
+  if(!state.active){
+    const sets = {};
+    for(const {e, tgt} of targets(ns.week, ns.day)){
+      const last = lastSets(e.id, ns.week, ns.day);
+      sets[e.id] = Array.from({length: tgt}, (_, i) => ({
+        w: e.bw ? null : (last ? (last[Math.min(i, last.length-1)].w) : e.refW),
+        r: null, done: false
+      }));
+    }
+    state.active = {week: ns.week, day: ns.day, date: today(), bodyWeight: null, memo: '', sets};
+    save();
+  }
+  view = 'session'; render();
+}
+
+function renderSession(){
+  const a = state.active; if(!a){ view = 'today'; return render(); }
+  const dd = dayDef(a.day);
+  $('#hTitle').textContent = `週${a.week} Day${a.day} ${dd.label}`;
+  $('#hSub').textContent = a.week === PLAN.deloadWeek ? '★デロード週' : '';
+  let html = '';
+  for(const {e, tgt} of targets(a.week, a.day)){
+    const rows = a.sets[e.id] || [];
+    const doneN = rows.filter(s => s.done).length;
+    html += `<div class="card"><div class="exhead">
+      <span class="exname">${e.name}${e.main ? ' ★' : ''}</span>
+      <span class="exmeta">${doneN}/${tgt}S・${e.reps}${e.refW ? '・参考'+e.refW+'kg' : ''}</span></div>`;
+    rows.forEach((s, i) => {
+      html += `<div class="setrow"><span class="setno">S${i+1}</span>`;
+      if(!e.bw){
+        html += `<div class="stepper">
+          <button onclick="bump('${e.id}',${i},'w',-2.5)">−</button>
+          <input type="number" step="0.5" value="${s.w ?? ''}" onchange="setVal('${e.id}',${i},'w',this.value)">
+          <button onclick="bump('${e.id}',${i},'w',2.5)">+</button></div><span class="unit">kg</span>`;
+      }
+      html += `<div class="stepper">
+        <button onclick="bump('${e.id}',${i},'r',-1)">−</button>
+        <input type="number" value="${s.r ?? ''}" placeholder="回" onchange="setVal('${e.id}',${i},'r',this.value)">
+        <button onclick="bump('${e.id}',${i},'r',1)">+</button></div><span class="unit">回</span>
+      <button class="donebtn${s.done ? ' on' : ''}" onclick="toggleDone('${e.id}',${i},${e.rest})">✓</button></div>`;
+    });
+    html += `<button class="addset" onclick="addSet('${e.id}')">+ セット追加</button></div>`;
+  }
+  html += `<div class="card"><h2>仕上げ</h2>
+    <div class="grid2">
+      <div><div class="muted">体重(kg)</div><input class="text" type="number" step="0.1" value="${a.bodyWeight ?? ''}" onchange="state.active.bodyWeight=parseFloat(this.value)||null;save()"></div>
+      <div><div class="muted">メモ</div><input class="text" value="${a.memo || ''}" onchange="state.active.memo=this.value;save()"></div>
+    </div>
+    <div style="height:10px"></div>
+    <button class="btn" onclick="finishSession()">セッション完了・保存</button>
+    <div style="height:8px"></div>
+    <button class="btn sec" onclick="if(confirm('入力を破棄しますか?')){state.active=null;save();view='today';render()}">破棄</button>
+  </div>`;
+  $('#main').innerHTML = html;
+}
+
+function bump(ex, i, k, d){
+  const s = state.active.sets[ex][i];
+  const base = s[k] ?? (k === 'w' ? 0 : 0);
+  s[k] = Math.max(0, Math.round((base + d) * 10) / 10);
+  save(); render();
+}
+function setVal(ex, i, k, v){
+  state.active.sets[ex][i][k] = v === '' ? null : parseFloat(v);
+  save();
+}
+function addSet(ex){
+  const rows = state.active.sets[ex];
+  const prev = rows[rows.length-1];
+  rows.push({w: prev ? prev.w : null, r: null, done: false});
+  save(); render();
+}
+function toggleDone(ex, i, rest){
+  const s = state.active.sets[ex][i];
+  if(!s.done && s.r == null){ // auto-fill reps guess from previous set
+    const prev = state.active.sets[ex][i-1];
+    if(prev && prev.r != null) s.r = prev.r;
+  }
+  s.done = !s.done;
+  save(); render();
+  if(s.done) startTimer(rest);
+}
+
+function finishSession(){
+  const a = state.active;
+  const sets = {};
+  let n = 0;
+  for(const [id, rows] of Object.entries(a.sets)){
+    const done = rows.filter(s => s.done || s.r != null).map(s => ({w: s.w, r: s.r ?? 0}));
+    if(done.length){ sets[id] = done; n += done.length; }
+  }
+  if(!n){ alert('セットが記録されていません'); return; }
+  state.logs.push({week: a.week, day: a.day, date: a.date, bodyWeight: a.bodyWeight, memo: a.memo || undefined, sets});
+  state.active = null;
+  save(); stopTimer();
+  view = 'today'; render();
+}
+
+/* ---------- rest timer ---------- */
+function startTimer(sec){
+  stopTimer();
+  const box = $('#timerBox');
+  box.style.display = 'block';
+  let left = sec;
+  const draw = () => {
+    box.innerHTML = `<div class="timer${left <= 0 ? ' done' : ''}">
+      <span>${left <= 0 ? '休憩おわり!' : 'レスト'}</span>
+      <span class="t">${Math.max(0,Math.floor(left/60))}:${String(Math.max(0,left%60)).padStart(2,'0')}</span>
+      <button onclick="stopTimer()">スキップ</button></div>`;
+  };
+  draw();
+  timer = setInterval(() => {
+    left--;
+    draw();
+    if(left === 0) beep();
+    if(left <= -3) stopTimer();
+  }, 1000);
+}
+function stopTimer(){ if(timer){ clearInterval(timer); timer = null; } $('#timerBox').style.display = 'none'; }
+function beep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, .25, .5].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880; g.gain.value = .3;
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .15);
+    });
+  }catch(e){}
+}
+
+/* ---------- logs ---------- */
+function renderLogs(){
+  $('#hTitle').textContent = '記録'; $('#hSub').textContent = '';
+  const logs = state.logs.slice().sort((a,b) => b.date.localeCompare(a.date) || (b.week*10+b.day)-(a.week*10+a.day));
+  let html = '<div class="loglist">';
+  if(!logs.length) html += '<div class="card muted">まだ記録がありません</div>';
+  for(const l of logs){
+    const dd = dayDef(l.day);
+    const n = Object.values(l.sets).reduce((a,arr) => a+arr.length, 0);
+    const tgt = targets(l.week, l.day).reduce((a,t) => a+t.tgt, 0);
+    html += `<div class="card" onclick="this.querySelector('.det').style.display = this.querySelector('.det').style.display === 'none' ? 'block' : 'none'">
+      <div class="row"><span><span class="daytag" style="background:${dd.color}">Day${l.day}</span>
+      <b style="margin-left:6px">週${l.week} ${dd.label}</b></span>
+      <span>${l.date.slice(5).replace('-','/')}・${n}/${tgt}S ${n >= tgt ? '✔' : ''}</span></div>
+      <div class="det" style="display:none; margin-top:8px; font-size:13px">`;
+    for(const {e} of targets(l.week, l.day)){
+      if(!l.sets[e.id]) continue;
+      html += `<div style="padding:4px 0; border-top:1px solid var(--line)">
+        <span class="muted">${e.name}</span><br>${l.sets[e.id].map(fmtSet).join('、 ')}</div>`;
+    }
+    if(l.bodyWeight) html += `<div class="muted" style="margin-top:6px">体重 ${l.bodyWeight}kg</div>`;
+    if(l.memo) html += `<div class="muted">メモ: ${l.memo}</div>`;
+    html += `<button class="btn small sec" style="margin-top:8px" onclick="event.stopPropagation();delLog(${l.week},${l.day})">この記録を削除</button>
+      </div></div>`;
+  }
+  html += '</div>';
+  $('#main').innerHTML = html;
+}
+function delLog(w,d){
+  if(!confirm(`週${w} Day${d} の記録を削除しますか?`)) return;
+  state.logs = state.logs.filter(l => !(l.week === w && l.day === d));
+  save(); render();
+}
+
+/* ---------- progress ---------- */
+function renderProgress(){
+  $('#hTitle').textContent = '進捗'; $('#hSub').textContent = '';
+  let html = '';
+  const totalDone = state.logs.reduce((a,l) => a + Object.values(l.sets).reduce((x,s) => x+s.length, 0), 0);
+  html += `<div class="card"><div class="grid2">
+    <div class="kpi"><div class="v">${state.logs.length}/45</div><div class="l">セッション</div></div>
+    <div class="kpi"><div class="v">${totalDone}/698</div><div class="l">総セット</div></div>
+  </div></div>`;
+  html += '<div class="card"><h2>週別ボリューム達成</h2>';
+  for(let w = 1; w <= 9; w++){
+    const s = weekStats(w);
+    const pct = Math.round(s.done/s.total*100);
+    html += `<div class="row"><span>週${w}${w === PLAN.deloadWeek ? '(デロード)' : ''}</span><span>${s.done}/${s.total}</span></div>
+      <div class="bar"><i style="width:${Math.min(100,pct)}%; ${w === PLAN.deloadWeek ? 'background:var(--warn)' : ''}"></i></div>`;
+  }
+  html += '</div>';
+  // main lift top weight chart
+  html += chartCard('メイン種目の重量推移', ['bench','squat','ohp'], l => s => s.w, 'kg');
+  html += chartCard('体重', null, null, 'kg');
+  $('#main').innerHTML = html;
+}
+function chartCard(title, exIds, getter, unit){
+  const series = [];
+  const colors = ['#60A5FA','#34D399','#F59E0B'];
+  const names = {bench:'ベンチ', squat:'スクワット', ohp:'バーチカルプレス'};
+  const sorted = state.logs.slice().sort((a,b) => (a.week*10+a.day)-(b.week*10+b.day));
+  if(exIds){
+    exIds.forEach((id, k) => {
+      const pts = [];
+      sorted.forEach(l => {
+        if(l.sets[id]){
+          const top = Math.max(...l.sets[id].map(s => s.w || 0));
+          if(top > 0) pts.push({x: l.week + (l.day-1)/5, y: top});
+        }
+      });
+      if(pts.length) series.push({name: names[id], pts, color: colors[k]});
+    });
+  } else {
+    const pts = [];
+    sorted.forEach(l => { if(l.bodyWeight) pts.push({x: l.week + (l.day-1)/5, y: l.bodyWeight}); });
+    if(pts.length) series.push({name: '体重', pts, color: '#F472B6'});
+  }
+  if(!series.length) return `<div class="card"><h2>${title}</h2><p class="muted">データがまだありません</p></div>`;
+  const all = series.flatMap(s => s.pts);
+  const ymin = Math.min(...all.map(p => p.y)) - 2, ymax = Math.max(...all.map(p => p.y)) + 2;
+  const W = 520, H = 180, L = 38, B = 22;
+  const sx = x => L + (x-1)/(9.8-1) * (W-L-10);
+  const sy = y => (H-B) - (y-ymin)/(ymax-ymin) * (H-B-14);
+  let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  for(let w = 1; w <= 9; w++)
+    svg += `<text x="${sx(w)}" y="${H-6}" fill="#9CA3AF" font-size="10" text-anchor="middle">週${w}</text>`;
+  [ymin+2, (ymin+ymax)/2, ymax-2].forEach(v => {
+    svg += `<text x="4" y="${sy(v)+3}" fill="#9CA3AF" font-size="10">${Math.round(v*10)/10}</text>
+      <line x1="${L}" x2="${W-8}" y1="${sy(v)}" y2="${sy(v)}" stroke="#374151" stroke-width=".5"/>`;
+  });
+  let legend = '';
+  series.forEach((s, k) => {
+    const d = s.pts.map((p,i) => `${i ? 'L' : 'M'}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ');
+    svg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+    s.pts.forEach(p => svg += `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="3" fill="${s.color}"/>`);
+    legend += `<span style="color:${s.color}; margin-right:12px">● ${s.name}</span>`;
+  });
+  svg += '</svg>';
+  return `<div class="card"><h2>${title}(${unit})</h2><div style="font-size:12px; margin-bottom:4px">${legend}</div>${svg}</div>`;
+}
+
+/* ---------- settings / export ---------- */
+function renderSettings(){
+  $('#hTitle').textContent = '設定・エクスポート'; $('#hSub').textContent = '';
+  $('#main').innerHTML = `
+  <div class="card"><h2>Claudeと共有(Vaultへ保存)</h2>
+    <p class="muted">「共有」でファイルアプリを開き、Obsidian Vaultの <b>02_Research/Training/Logs</b> に保存してください。Claudeがそのまま読めます。</p>
+    <button class="btn" onclick="shareMd()">📤 ログを共有(.md)</button>
+    <div style="height:8px"></div>
+    <button class="btn sec" onclick="copyMd()">📋 ログをコピー</button>
+  </div>
+  <div class="card"><h2>バックアップ</h2>
+    <button class="btn sec" onclick="shareJson()">JSONバックアップを共有</button>
+    <div style="height:8px"></div>
+    <textarea id="importBox" rows="3" placeholder="JSONを貼り付けて復元"></textarea>
+    <div style="height:8px"></div>
+    <button class="btn sec" onclick="importJson()">復元(インポート)</button>
+  </div>
+  <div class="card"><h2>リセット</h2>
+    <button class="btn sec" onclick="if(confirm('全記録を削除して初期状態に戻しますか?')){localStorage.removeItem(KEY);state=load();render()}">初期化</button>
+  </div>
+  <p class="muted" style="text-align:center">筋トレ週5 v1.0 — 9週間プログレッシブプラン</p>`;
+}
+function buildMd(){
+  const sorted = state.logs.slice().sort((a,b) => (a.week*10+a.day)-(b.week*10+b.day));
+  let md = `# 筋トレログ(アプリ出力 ${today()})\n`;
+  for(const l of sorted){
+    const dd = dayDef(l.day);
+    md += `\n## ${l.date} 週${l.week} Day${l.day} ${dd.label}\n`;
+    for(const {e} of targets(l.week, l.day)){
+      if(!l.sets[e.id]) continue;
+      md += `- ${e.name}: ${l.sets[e.id].map(fmtSet).join(', ')}\n`;
+    }
+    if(l.bodyWeight) md += `- 体重: ${l.bodyWeight}kg\n`;
+    if(l.memo) md += `- メモ: ${l.memo}\n`;
+  }
+  return md;
+}
+async function shareMd(){
+  const f = new File([buildMd()], `筋トレログ_${today()}.md`, {type: 'text/markdown'});
+  if(navigator.canShare && navigator.canShare({files: [f]})) await navigator.share({files: [f]});
+  else copyMd();
+}
+async function copyMd(){
+  await navigator.clipboard.writeText(buildMd());
+  alert('コピーしました');
+}
+async function shareJson(){
+  const f = new File([JSON.stringify(state)], `workout-backup_${today()}.json`, {type: 'application/json'});
+  if(navigator.canShare && navigator.canShare({files: [f]})) await navigator.share({files: [f]});
+  else { await navigator.clipboard.writeText(JSON.stringify(state)); alert('JSONをコピーしました'); }
+}
+function importJson(){
+  try{
+    const s = JSON.parse($('#importBox').value);
+    if(!s.logs) throw 0;
+    state = s; save(); alert('復元しました'); render();
+  }catch(e){ alert('JSONが不正です'); }
+}
+
+/* ---------- init ---------- */
+document.querySelectorAll('nav button').forEach(b =>
+  b.addEventListener('click', () => { view = b.dataset.v; render(); }));
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if(state.active) view = 'session';
+render();
+</script>
+</body>
+</html>
