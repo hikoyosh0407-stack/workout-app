@@ -132,7 +132,10 @@ function lastSets(exId, beforeW, beforeD){
   }
   return null;
 }
-function today(){ return new Date().toISOString().slice(0,10); }
+function today(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 function fmtSet(s){ return s.w != null ? `${s.w}×${s.r}` : `${s.r}回`; }
 
 /* ---------- render ---------- */
@@ -489,6 +492,7 @@ function importJson(){
 document.querySelectorAll('nav button').forEach(b =>
   b.addEventListener('click', () => { view = b.dataset.v; render(); }));
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+document.addEventListener('visibilitychange', () => { if(!document.hidden) render(); });
 if(state.active) view = 'session';
 render();
 </script>
