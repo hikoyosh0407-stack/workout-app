@@ -434,7 +434,7 @@ function renderSettings(){
   $('#hTitle').textContent = '設定・エクスポート'; $('#hSub').textContent = '';
   $('#main').innerHTML = `
   <div class="card"><h2>Claudeと共有(Vaultへ保存)</h2>
-    <p class="muted">「共有」でファイルアプリを開き、Obsidian Vaultの <b>02_Research/Training/Logs</b> に保存してください。Claudeがそのまま読めます。</p>
+    <p class="muted">「共有」→「ファイルに保存」で Obsidian Vaultの <b>02_Research/Training</b> にある <b>トレーニングログ.md</b> を上書き保存(「置き換える」を選択)。iPhoneのObsidianでそのまま閲覧でき、Claudeも読めます。</p>
     <button class="btn" onclick="shareMd()">📤 ログを共有(.md)</button>
     <div style="height:8px"></div>
     <button class="btn sec" onclick="copyMd()">📋 ログをコピー</button>
@@ -453,21 +453,43 @@ function renderSettings(){
 }
 function buildMd(){
   const sorted = state.logs.slice().sort((a,b) => (a.week*10+a.day)-(b.week*10+b.day));
-  let md = `# 筋トレログ(アプリ出力 ${today()})\n`;
+  const totalDone = state.logs.reduce((a,l) => a + Object.values(l.sets).reduce((x,s) => x+s.length, 0), 0);
+  let bw = null, bwDate = '';
+  sorted.forEach(l => { if(l.bodyWeight){ bw = l.bodyWeight; bwDate = l.date; } });
+  const ns = nextSession();
+  const curW = ns ? ns.week : 9;
+  const blockName = w => w <= 4 ? 'ビルド1' : (w === PLAN.deloadWeek ? 'デロード' : 'ビルド2');
+  let md = `---\ntags: [training, workout-log]\nrelated: ["[[筋トレメニュー]]", "[[食事管理]]"]\nupdated: ${today()}\n---\n\n`;
+  md += `# 🏋️ トレーニングログ\n\n`;
+  md += `> 週5×9週間プログレッシブプラン ・ iPad記録／iPhone閲覧\n\n`;
+  md += `## 📊 進捗サマリー\n`;
+  md += `- 消化セッション: **${state.logs.length} / 45**\n`;
+  md += `- 総セット: **${totalDone} / 698**\n`;
+  md += `- 現在: **週${curW}(${blockName(curW)})**${ns ? '' : ' — 🎉完走'}\n`;
+  if(bw) md += `- 最新体重: **${bw}kg** (${bwDate.slice(5)})\n`;
+  let lastWeek = 0;
   for(const l of sorted){
+    if(l.week !== lastWeek){
+      const s = weekStats(l.week);
+      md += `\n## 週${l.week}${l.week === PLAN.deloadWeek ? '(デロード)' : ''} — ${s.done}/${s.total}セット\n`;
+      lastWeek = l.week;
+    }
     const dd = dayDef(l.day);
-    md += `\n## ${l.date} 週${l.week} Day${l.day} ${dd.label}\n`;
+    const n = Object.values(l.sets).reduce((a,arr) => a+arr.length, 0);
+    const tgt = targets(l.week, l.day).reduce((a,t) => a+t.tgt, 0);
+    const mark = n >= tgt ? '✅' : '▫️';
+    md += `\n### ${mark} ${l.date.slice(5)} Day${l.day} ${dd.label} (${n}/${tgt})\n`;
     for(const {e} of targets(l.week, l.day)){
       if(!l.sets[e.id]) continue;
       md += `- ${e.name}: ${l.sets[e.id].map(fmtSet).join(', ')}\n`;
     }
     if(l.bodyWeight) md += `- 体重: ${l.bodyWeight}kg\n`;
-    if(l.memo) md += `- メモ: ${l.memo}\n`;
+    if(l.memo) md += `- 📝 ${l.memo}\n`;
   }
   return md;
 }
 async function shareMd(){
-  const f = new File([buildMd()], `筋トレログ_${today()}.md`, {type: 'text/markdown'});
+  const f = new File([buildMd()], `トレーニングログ.md`, {type: 'text/markdown'});
   if(navigator.canShare && navigator.canShare({files: [f]})) await navigator.share({files: [f]});
   else copyMd();
 }
