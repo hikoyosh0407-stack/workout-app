@@ -221,6 +221,7 @@ function renderSession(){
   for(const {e, tgt} of targets(a.week, a.day)){
     const rows = a.sets[e.id] || [];
     const doneN = rows.filter(s => s.done).length;
+    const winc = ['bench','squat','squat2'].includes(e.id) ? 2.5 : 0.5;
     html += `<div class="card"><div class="exhead">
       <span class="exname">${e.name}${e.main ? ' ★' : ''}</span>
       <span class="exmeta">${doneN}/${tgt}S・${e.reps}${e.refW ? '・参考'+e.refW+'kg' : ''}</span></div>`;
@@ -228,9 +229,9 @@ function renderSession(){
       html += `<div class="setrow"><span class="setno">S${i+1}</span>`;
       if(!e.bw){
         html += `<div class="stepper">
-          <button onclick="bump('${e.id}',${i},'w',-2.5)">−</button>
+          <button onclick="bump('${e.id}',${i},'w',-${winc})">−</button>
           <input type="number" step="0.5" value="${s.w ?? ''}" onchange="setVal('${e.id}',${i},'w',this.value)">
-          <button onclick="bump('${e.id}',${i},'w',2.5)">+</button></div><span class="unit">kg</span>`;
+          <button onclick="bump('${e.id}',${i},'w',${winc})">+</button></div><span class="unit">kg</span>`;
       }
       html += `<div class="stepper">
         <button onclick="bump('${e.id}',${i},'r',-1)">−</button>
