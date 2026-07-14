@@ -271,10 +271,17 @@ function addSet(ex){
   save(); render();
 }
 function toggleDone(ex, i, rest){
-  const s = state.active.sets[ex][i];
-  if(!s.done && s.r == null){ // auto-fill reps guess from previous set
-    const prev = state.active.sets[ex][i-1];
-    if(prev && prev.r != null) s.r = prev.r;
+  const rows = state.active.sets[ex];
+  const s = rows[i];
+  if(!s.done && !(s.r > 0)){ // reps empty or 0 → carry from most recent filled set (any exercise)
+    for(let k = i - 1; k >= 0; k--){
+      if(rows[k].r > 0){ s.r = rows[k].r; break; }
+    }
+    if(!(s.w > 0)){ // also carry weight if still empty
+      for(let k = i - 1; k >= 0; k--){
+        if(rows[k].w > 0){ s.w = rows[k].w; break; }
+      }
+    }
   }
   s.done = !s.done;
   save(); render();
