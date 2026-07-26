@@ -73,6 +73,9 @@ nav button.on{color:var(--acc)}
 textarea,input.text{width:100%; background:var(--card2); border:1px solid var(--line); color:var(--txt);
   border-radius:10px; padding:10px; font-size:15px; font-family:inherit}
 .deload{border:1.5px solid var(--warn)}
+.coach{background:rgba(96,165,250,.14); border-left:3px solid var(--acc); border-radius:8px;
+  padding:8px 11px; margin:8px 0 4px; font-size:13px; line-height:1.5; color:var(--txt)}
+.coach b{color:var(--acc)}
 .deload-note{color:var(--warn); font-size:12px; font-weight:700; margin:4px 0}
 .chart{width:100%; height:auto}
 .muted{color:var(--sub); font-size:12px; line-height:1.6}
@@ -132,6 +135,10 @@ function lastSets(exId, beforeW, beforeD){
   }
   return null;
 }
+function coachNote(exId){
+  const c = (typeof COACH !== 'undefined' && COACH) ? COACH[exId] : null;
+  return c || null;
+}
 function today(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -176,6 +183,12 @@ function renderToday(){
   html += `</table>
     <button class="btn" onclick="startSession()">${state.active ? '▶ 続きから再開' : 'トレーニング開始'}</button>
   </div>`;
+  const notes = ts.filter(({e}) => coachNote(e.id));
+  if(notes.length){
+    html += `<div class="card"><h2>💡 今日のコーチメモ</h2>`;
+    for(const {e} of notes) html += `<div class="coach"><b>${e.name}</b><br>${coachNote(e.id)}</div>`;
+    html += `</div>`;
+  }
   // week progress mini
   const wt = weekStats(ns.week);
   html += `<div class="card"><h2>週${ns.week}の進捗</h2>
@@ -225,6 +238,7 @@ function renderSession(){
     html += `<div class="card"><div class="exhead">
       <span class="exname">${e.name}${e.main ? ' ★' : ''}</span>
       <span class="exmeta">${doneN}/${tgt}S・${e.reps}${e.refW ? '・参考'+e.refW+'kg' : ''}</span></div>`;
+    if(coachNote(e.id)) html += `<div class="coach">💡 ${coachNote(e.id)}</div>`;
     rows.forEach((s, i) => {
       html += `<div class="setrow"><span class="setno">S${i+1}</span>`;
       if(!e.bw){
