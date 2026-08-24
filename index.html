@@ -219,7 +219,7 @@ function startSession(){
         r: null, done: false
       }));
     }
-    state.active = {week: ns.week, day: ns.day, date: today(), bodyWeight: null, memo: '', sets};
+    state.active = {week: ns.week, day: ns.day, date: today(), bodyWeight: null, bodyFat: null, memo: '', sets};
     save();
   }
   view = 'session'; render();
@@ -258,8 +258,10 @@ function renderSession(){
   html += `<div class="card"><h2>仕上げ</h2>
     <div class="grid2">
       <div><div class="muted">体重(kg)</div><input class="text" type="number" step="0.1" value="${a.bodyWeight ?? ''}" onchange="state.active.bodyWeight=parseFloat(this.value)||null;save()"></div>
-      <div><div class="muted">メモ</div><input class="text" value="${a.memo || ''}" onchange="state.active.memo=this.value;save()"></div>
+      <div><div class="muted">体脂肪率(%)</div><input class="text" type="number" step="0.1" value="${a.bodyFat ?? ''}" onchange="state.active.bodyFat=parseFloat(this.value)||null;save()"></div>
     </div>
+    <div style="height:10px"></div>
+    <div><div class="muted">メモ</div><input class="text" value="${a.memo || ''}" onchange="state.active.memo=this.value;save()"></div>
     <div style="height:10px"></div>
     <button class="btn" onclick="finishSession()">セッション完了・保存</button>
     <div style="height:8px"></div>
@@ -311,7 +313,7 @@ function finishSession(){
     if(done.length){ sets[id] = done; n += done.length; }
   }
   if(!n){ alert('セットが記録されていません'); return; }
-  state.logs.push({week: a.week, day: a.day, date: a.date, bodyWeight: a.bodyWeight, memo: a.memo || undefined, sets});
+  state.logs.push({week: a.week, day: a.day, date: a.date, bodyWeight: a.bodyWeight, bodyFat: a.bodyFat, memo: a.memo || undefined, sets});
   state.active = null;
   save(); stopTimer();
   view = 'today'; render();
@@ -370,7 +372,7 @@ function renderLogs(){
       html += `<div style="padding:4px 0; border-top:1px solid var(--line)">
         <span class="muted">${e.name}</span><br>${l.sets[e.id].map(fmtSet).join('、 ')}</div>`;
     }
-    if(l.bodyWeight) html += `<div class="muted" style="margin-top:6px">体重 ${l.bodyWeight}kg</div>`;
+    if(l.bodyWeight || l.bodyFat) html += `<div class="muted" style="margin-top:6px">${[l.bodyWeight ? '体重 '+l.bodyWeight+'kg' : '', l.bodyFat ? '体脂肪率 '+l.bodyFat+'%' : ''].filter(Boolean).join('・')}</div>`;
     if(l.memo) html += `<div class="muted">メモ: ${l.memo}</div>`;
     html += `<button class="btn small sec" style="margin-top:8px" onclick="event.stopPropagation();delLog(${l.week},${l.day})">この記録を削除</button>
       </div></div>`;
@@ -403,10 +405,11 @@ function renderProgress(){
   html += '</div>';
   // main lift top weight chart
   html += chartCard('メイン種目の重量推移', ['bench','squat','ohp'], l => s => s.w, 'kg');
-  html += chartCard('体重', null, null, 'kg');
+  html += chartCard('体重', null, null, 'kg', 'bodyWeight');
+  html += chartCard('体脂肪率', null, null, '%', 'bodyFat');
   $('#main').innerHTML = html;
 }
-function chartCard(title, exIds, getter, unit){
+function chartCard(title, exIds, getter, unit, bodyKey){
   const series = [];
   const colors = ['#60A5FA','#34D399','#F59E0B'];
   const names = {bench:'ベンチ', squat:'スクワット', ohp:'バーチカルプレス'};
@@ -423,9 +426,10 @@ function chartCard(title, exIds, getter, unit){
       if(pts.length) series.push({name: names[id], pts, color: colors[k]});
     });
   } else {
+    const key = bodyKey || 'bodyWeight';
     const pts = [];
-    sorted.forEach(l => { if(l.bodyWeight) pts.push({x: l.week + (l.day-1)/5, y: l.bodyWeight}); });
-    if(pts.length) series.push({name: '体重', pts, color: '#F472B6'});
+    sorted.forEach(l => { if(l[key]) pts.push({x: l.week + (l.day-1)/5, y: l[key]}); });
+    if(pts.length) series.push({name: title, pts, color: key === 'bodyFat' ? '#FBBF24' : '#F472B6'});
   }
   if(!series.length) return `<div class="card"><h2>${title}</h2><p class="muted">データがまだありません</p></div>`;
   const all = series.flatMap(s => s.pts);
@@ -476,8 +480,11 @@ function renderSettings(){
 function buildMd(){
   const sorted = state.logs.slice().sort((a,b) => (a.week*10+a.day)-(b.week*10+b.day));
   const totalDone = state.logs.reduce((a,l) => a + Object.values(l.sets).reduce((x,s) => x+s.length, 0), 0);
-  let bw = null, bwDate = '';
-  sorted.forEach(l => { if(l.bodyWeight){ bw = l.bodyWeight; bwDate = l.date; } });
+  let bw = null, bwDate = '', bf = null, bfDate = '';
+  sorted.forEach(l => {
+    if(l.bodyWeight){ bw = l.bodyWeight; bwDate = l.date; }
+    if(l.bodyFat){ bf = l.bodyFat; bfDate = l.date; }
+  });
   const ns = nextSession();
   const curW = ns ? ns.week : 9;
   const blockName = w => w <= 4 ? 'ビルド1' : (w === PLAN.deloadWeek ? 'デロード' : 'ビルド2');
@@ -488,7 +495,11 @@ function buildMd(){
   md += `- 消化セッション: **${state.logs.length} / 45**\n`;
   md += `- 総セット: **${totalDone} / 698**\n`;
   md += `- 現在: **週${curW}(${blockName(curW)})**${ns ? '' : ' — 🎉完走'}\n`;
-  if(bw) md += `- 最新体重: **${bw}kg** (${bwDate.slice(5)})\n`;
+  if(bw && bf && bwDate === bfDate) md += `- 最新体重: **${bw}kg**・体脂肪率: **${bf}%** (${bwDate.slice(5)})\n`;
+  else {
+    if(bw) md += `- 最新体重: **${bw}kg** (${bwDate.slice(5)})\n`;
+    if(bf) md += `- 最新体脂肪率: **${bf}%** (${bfDate.slice(5)})\n`;
+  }
   let lastWeek = 0;
   for(const l of sorted){
     if(l.week !== lastWeek){
@@ -505,7 +516,9 @@ function buildMd(){
       if(!l.sets[e.id]) continue;
       md += `- ${e.name}: ${l.sets[e.id].map(fmtSet).join(', ')}\n`;
     }
-    if(l.bodyWeight) md += `- 体重: ${l.bodyWeight}kg\n`;
+    if(l.bodyWeight && l.bodyFat) md += `- 体重: ${l.bodyWeight}kg・体脂肪率: ${l.bodyFat}%\n`;
+    else if(l.bodyWeight) md += `- 体重: ${l.bodyWeight}kg\n`;
+    else if(l.bodyFat) md += `- 体脂肪率: ${l.bodyFat}%\n`;
     if(l.memo) md += `- 📝 ${l.memo}\n`;
   }
   return md;
