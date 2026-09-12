@@ -395,6 +395,18 @@ function renderProgress(){
     <div class="kpi"><div class="v">${state.logs.length}/45</div><div class="l">セッション</div></div>
     <div class="kpi"><div class="v">${totalDone}/698</div><div class="l">総セット</div></div>
   </div></div>`;
+  const pace = paceStats();
+  if(pace){
+    const limit = Math.round(pace.to.y * 0.01 * 1000);
+    html += `<div class="card"><h2>減量ペース</h2>
+      <div class="grid2">
+        <div class="kpi"><div class="v" style="color:${pace.color}">${pace.ratePct > 0 ? '+' : ''}${pace.ratePct.toFixed(2)}%</div><div class="l">週あたり体重変化</div></div>
+        <div class="kpi"><div class="v" style="color:${pace.color}; font-size:16px">${pace.label}</div><div class="l">判定</div></div>
+      </div>
+      <p class="muted" style="margin:8px 0 0">${pace.from.y}kg → ${pace.to.y}kg(${pace.weeks.toFixed(1)}週・週${pace.kgPerWeek > 0 ? '+' : ''}${Math.round(pace.kgPerWeek*1000)}g)<br>
+      週1%(約${limit}g)を超えて減ると筋肉が落ちているサイン。</p>
+    </div>`;
+  }
   html += '<div class="card"><h2>週別ボリューム達成</h2>';
   for(let w = 1; w <= 9; w++){
     const s = weekStats(w);
@@ -405,11 +417,26 @@ function renderProgress(){
   html += '</div>';
   // main lift top weight chart
   html += chartCard('メイン種目の重量推移', ['bench','squat','ohp'], l => s => s.w, 'kg');
-  html += chartCard('体重', null, null, 'kg', 'bodyWeight');
+  html += chartCard('体重', null, null, 'kg', 'bodyWeight', true);
   html += chartCard('体脂肪率', null, null, '%', 'bodyFat');
   $('#main').innerHTML = html;
 }
-function chartCard(title, exIds, getter, unit, bodyKey){
+function paceStats(){
+  const pts = [];
+  state.logs.slice().sort((a,b) => (a.week*10+a.day)-(b.week*10+b.day))
+    .forEach(l => { if(l.bodyWeight) pts.push({x: l.week + (l.day-1)/5, y: l.bodyWeight}); });
+  if(pts.length < 2) return null;
+  const from = pts[0], to = pts[pts.length-1], weeks = to.x - from.x;
+  if(weeks <= 0) return null;
+  const ratePct = ((to.y - from.y) / from.y) / weeks * 100;
+  let label, color;
+  if(ratePct >= 0.25){ label = '増量中'; color = 'var(--acc)'; }
+  else if(ratePct > -0.5){ label = '維持〜微減'; color = 'var(--ok)'; }
+  else if(ratePct >= -1){ label = '安全ペース'; color = 'var(--ok)'; }
+  else { label = '速すぎ'; color = 'var(--warn)'; }
+  return {from, to, weeks, ratePct, label, color, kgPerWeek: (to.y - from.y) / weeks};
+}
+function chartCard(title, exIds, getter, unit, bodyKey, band){
   const series = [];
   const colors = ['#60A5FA','#34D399','#F59E0B'];
   const names = {bench:'ベンチ', squat:'スクワット', ohp:'バーチカルプレス'};
@@ -432,7 +459,21 @@ function chartCard(title, exIds, getter, unit, bodyKey){
     if(pts.length) series.push({name: title, pts, color: key === 'bodyFat' ? '#FBBF24' : '#F472B6'});
   }
   if(!series.length) return `<div class="card"><h2>${title}</h2><p class="muted">データがまだありません</p></div>`;
-  const all = series.flatMap(s => s.pts);
+  // D15: 安全な減量ペースは週0.5〜1%。起点の体重から2本の指数カーブを引き、その間を安全圏として塗る
+  let bandPts = null;
+  if(band){
+    const p = series[0].pts, x0 = p[0].x, y0 = p[0].y, x1 = p[p.length-1].x;
+    if(x1 > x0){
+      const slow = [], fast = [];
+      for(let i = 0; i <= 24; i++){
+        const x = x0 + (x1-x0)*i/24, w = x - x0;
+        slow.push({x, y: y0*Math.pow(0.995,w)});
+        fast.push({x, y: y0*Math.pow(0.99,w)});
+      }
+      bandPts = {slow, fast};
+    }
+  }
+  const all = series.flatMap(s => s.pts).concat(bandPts ? bandPts.fast : []);
   const ymin = Math.min(...all.map(p => p.y)) - 2, ymax = Math.max(...all.map(p => p.y)) + 2;
   const W = 520, H = 180, L = 38, B = 22;
   const sx = x => L + (x-1)/(9.8-1) * (W-L-10);
@@ -445,6 +486,14 @@ function chartCard(title, exIds, getter, unit, bodyKey){
       <line x1="${L}" x2="${W-8}" y1="${sy(v)}" y2="${sy(v)}" stroke="#374151" stroke-width=".5"/>`;
   });
   let legend = '';
+  if(bandPts){
+    const top = bandPts.slow.map(p => `${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ');
+    const bot = bandPts.fast.slice().reverse().map(p => `${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ');
+    svg += `<polygon points="${top} ${bot}" fill="rgba(52,211,153,.16)"/>`;
+    svg += `<path d="${bandPts.fast.map((p,i) => `${i?'L':'M'}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ')}"
+      fill="none" stroke="#34D399" stroke-width="1" stroke-dasharray="3 3" opacity=".8"/>`;
+    legend += `<span style="color:#34D399; margin-right:12px">▬ 安全ペース(週0.5〜1%減)</span>`;
+  }
   series.forEach((s, k) => {
     const d = s.pts.map((p,i) => `${i ? 'L' : 'M'}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ');
     svg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
