@@ -107,10 +107,23 @@ let state = load();
 let view = 'today';
 let timer = null;
 
+// 体脂肪率が100以上なら小数点の打ち忘れとみなす(197 → 19.7)
+function fixBodyFat(v){
+  if(!v) return null;
+  while(v >= 100) v /= 10;
+  return Math.round(v * 10) / 10;
+}
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
-    if(s && s.logs) return s;
+    if(s && s.logs){
+      let changed = false;
+      for(const l of s.logs.concat(s.active ? [s.active] : [])){
+        if(l.bodyFat >= 100){ l.bodyFat = fixBodyFat(l.bodyFat); changed = true; }
+      }
+      if(changed) localStorage.setItem(KEY, JSON.stringify(s));
+      return s;
+    }
   }catch(e){}
   return {logs: JSON.parse(JSON.stringify(SEED_LOGS)), active: null};
 }
@@ -258,7 +271,7 @@ function renderSession(){
   html += `<div class="card"><h2>仕上げ</h2>
     <div class="grid2">
       <div><div class="muted">体重(kg)</div><input class="text" type="number" step="0.1" value="${a.bodyWeight ?? ''}" onchange="state.active.bodyWeight=parseFloat(this.value)||null;save()"></div>
-      <div><div class="muted">体脂肪率(%)</div><input class="text" type="number" step="0.1" value="${a.bodyFat ?? ''}" onchange="state.active.bodyFat=parseFloat(this.value)||null;save()"></div>
+      <div><div class="muted">体脂肪率(%)</div><input class="text" type="number" step="0.1" value="${a.bodyFat ?? ''}" onchange="state.active.bodyFat=fixBodyFat(parseFloat(this.value));this.value=state.active.bodyFat??'';save()"></div>
     </div>
     <div style="height:10px"></div>
     <div><div class="muted">メモ</div><input class="text" value="${a.memo || ''}" onchange="state.active.memo=this.value;save()"></div>
