@@ -1,4 +1,4 @@
-const CACHE = 'workout-v1.3.11';
+const CACHE = 'workout-v1.3.12';
 const ASSETS = ['./', 'index.html', 'plan-data.js', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
