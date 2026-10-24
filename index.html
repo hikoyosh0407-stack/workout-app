@@ -122,10 +122,22 @@ function load(){
         if(l.bodyFat >= 100){ l.bodyFat = fixBodyFat(l.bodyFat); changed = true; }
       }
       if(changed) localStorage.setItem(KEY, JSON.stringify(s));
+      if(!s.cycle) s.cycle = 1;
+      if(!s.archive) s.archive = [];
       return s;
     }
   }catch(e){}
-  return {logs: JSON.parse(JSON.stringify(SEED_LOGS)), active: null};
+  return {logs: JSON.parse(JSON.stringify(SEED_LOGS)), active: null, cycle: 1, archive: []};
+}
+// 完走した周の記録は消さずに archive へ移し、週1から次の周を始める
+function startNextCycle(){
+  const next = state.cycle + 1;
+  if(!confirm(`${next}周目を始めますか?\n${state.cycle}周目の記録はアプリ内に保管され、消えません。\n(先に「ログを共有」でVaultに保存しておくと安心です)`)) return;
+  state.archive.push({cycle: state.cycle, logs: state.logs});
+  state.logs = [];
+  state.active = null;
+  state.cycle = next;
+  save(); view = 'today'; render();
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -172,9 +184,12 @@ function render(){
 
 function renderToday(){
   const ns = nextSession();
-  $('#hTitle').textContent = '筋トレ週5'; $('#hSub').textContent = '';
+  $('#hTitle').textContent = '筋トレ週5'; $('#hSub').textContent = state.cycle > 1 ? `${state.cycle}周目` : '';
   const m = $('#main');
-  if(!ns){ m.innerHTML = '<div class="card"><h2>🎉 9週間プラン完走!</h2><p class="muted">全セッション完了です。お疲れさまでした。</p></div>'; return; }
+  if(!ns){ m.innerHTML = `<div class="card"><h2>🎉 9週間プラン${state.cycle > 1 ? '(' + state.cycle + '周目)' : ''}完走!</h2>
+    <p class="muted">全セッション完了です。お疲れさまでした。</p>
+    <button class="btn" onclick="startNextCycle()">▶ ${state.cycle + 1}周目を始める</button>
+    <p class="muted" style="margin:8px 0 0">参考重量は最新の値で、週1から始まります。</p></div>`; return; }
   if(state.active && (state.active.week !== ns.week || state.active.day !== ns.day)){ state.active = null; save(); }
   const dd = dayDef(ns.day);
   const deload = ns.week === PLAN.deloadWeek;
@@ -550,8 +565,9 @@ function buildMd(){
   const ns = nextSession();
   const curW = ns ? ns.week : 9;
   const blockName = w => w <= 4 ? 'ビルド1' : (w === PLAN.deloadWeek ? 'デロード' : 'ビルド2');
-  let md = `---\ntags: [training, workout-log]\nrelated: ["[[筋トレメニュー]]", "[[食事管理]]"]\nupdated: ${today()}\n---\n\n`;
-  md += `# 🏋️ トレーニングログ\n\n`;
+  const prev = state.cycle > 1 ? `"[[トレーニングログ_${state.cycle - 1}周目]]", ` : '';
+  let md = `---\ntags: [training, workout-log]\nrelated: [${prev}"[[筋トレメニュー]]", "[[食事管理]]"]\nupdated: ${today()}\n---\n\n`;
+  md += `# 🏋️ トレーニングログ${state.cycle > 1 ? '(' + state.cycle + '周目)' : ''}\n\n`;
   md += `> 週5×9週間プログレッシブプラン ・ iPad記録／iPhone閲覧\n\n`;
   md += `## 📊 進捗サマリー\n`;
   md += `- 消化セッション: **${state.logs.length} / 45**\n`;
